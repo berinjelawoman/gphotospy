@@ -1,3 +1,5 @@
+from typing import *
+
 
 class POSITION:
     """
@@ -172,6 +174,7 @@ class Album:
         self._service = service["service"]
         self._secrets = service["secrets"]
 
+
     # UTILITIES
     def set_pagination(self, n: int):
         """ Undocumented: see list() for more info """
@@ -185,6 +188,7 @@ class Album:
         if n < 1:
             n = 1
         self._PAGESIZE = n
+
 
     def set_collaborative_share(self, val: bool):
         """
@@ -202,6 +206,7 @@ class Album:
 
         self._COLLABORATIVE = val
 
+
     def set_commentable_share(self, val: bool):
         """
         Sets the share method to allow commentable by default or not
@@ -217,6 +222,7 @@ class Album:
         """
 
         self._COMMENTABLE = val
+
 
     def show_only_created(self, val: bool):
         """
@@ -234,6 +240,7 @@ class Album:
 
         self._SHOW_ONLY_CREATED = val
 
+
     # API ENDPOINTS
     def add_enrichment(self, album_id: str, enrichement_type, position):
         """ Generic. Use the specified versions """
@@ -245,6 +252,7 @@ class Album:
         return self._service.albums().addEnrichment(
             albumId=album_id,
             body=request_body).execute()
+
 
     def add_location(
             self,
@@ -289,6 +297,7 @@ class Album:
         }
         result = self.add_enrichment(album_id, enrichement_type, position)
         return result.get("enrichmentItem")
+
 
     def add_map(
             self,
@@ -339,6 +348,7 @@ class Album:
         result = self.add_enrichment(album_id, enrichement_type, position)
         return result.get("enrichmentItem")
 
+
     def add_text(
             self,
             album_id: str,
@@ -374,6 +384,7 @@ class Album:
         result = self.add_enrichment(album_id, enrichement_type, position)
         return result.get("enrichmentItem")
 
+
     def batchAddMediaItems(self, album_id: str, items):
         """
         Add a list of media items to the given album
@@ -399,7 +410,8 @@ class Album:
             albumId=album_id,
             body=request_body).execute()
 
-    def batchRemoveMediaItems(self, album_id: str, items):
+
+    def batchRemoveMediaItems(self, album_id: str, items: List[str]):
         """
         Removes a list of media items to the given album
 
@@ -423,6 +435,31 @@ class Album:
         return self._service.albums().batchRemoveMediaItems(
             albumId=album_id,
             body=request_body).execute()
+
+
+    def clear_album(self, album_id: str) -> None:
+        """
+        Removes all photos from an album
+
+        Parameters
+        ----------
+        album_id: str
+            Id of the album to remove the items from
+
+        Returns
+        -------
+        Empty object if successfull
+        """
+        body = {
+            "albumId": album_id,
+            "pageSize": self._PAGESIZE
+        }
+        
+        results = self._service["service"].mediaItems().search(body=body).execute()
+        photo_ids = [r.get("id") for r in results["mediaItems"]]
+
+        return self.batchRemoveMediaItems(album_id, photo_ids)
+
 
     def create(self, title: str):
         """
@@ -449,6 +486,7 @@ class Album:
             "album": {'title': title}
         }
         return self._service.albums().create(body=request_body).execute()
+
 
     def get(self, id: str):
         """
@@ -479,6 +517,63 @@ class Album:
         >>> album_manager.get(album_id)
         """
         return self._service.albums().get(albumId=id).execute()
+
+
+    def get_album_id_from_title(self, title: str) -> str:
+        """
+        Returns the album id corresponding to the specified title
+
+        Parameters
+        ----------
+        title: str
+            Title of the album to get
+
+        Returns
+        -------
+        string:
+            Album id
+
+        Examples
+        --------
+        Get next album's id
+
+        >>> album_id = album_manager.get_album_id_from_title("title")
+        """
+        return next((album.get("id") for album in self.list() if album.get("title") == title), "")
+
+
+    def getMediaItems(self, album_id: str) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Returns the media items inside the album corresponding to the specified id
+
+        Parameters
+        ----------
+        id: str
+            Id of the album to get
+
+        Returns
+        -------
+        Dictionary:
+            Dictionary with a list of the media items
+
+        Get an iterator:
+
+        >>> album_iterator = album_manager.list()
+
+        Get next album's id
+
+        >>> album_id = next(album_iterator).get("id")
+
+        Get album's photos based on id
+
+        >>> album_manager.getMediaItems(album_id)
+        """
+        request_body = {
+            "albumId": album_id,
+            "pageSize": self._PAGESIZE
+        }
+        return self._service.mediaItems().search(body=request_body).execute()
+
 
     def list(self, show_only_created=_SHOW_ONLY_CREATED):
         """
@@ -532,6 +627,7 @@ class Album:
             curr_list = result.get("albums")
             for album in curr_list:
                 yield album
+
 
     def share(
             self,
@@ -588,6 +684,7 @@ class Album:
             albumId=id,
             body=request_body).execute()
         return result.get('shareInfo')
+
 
     def unshare(self, id: str):
         """
