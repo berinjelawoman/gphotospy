@@ -8,6 +8,8 @@ from gphotospy.utils import batches
 from .album import set_position, POSITION
 from .upload import upload
 
+from typing import *
+
 
 class Val:
     """ Internal use only """
@@ -569,6 +571,24 @@ class Media:
             }
         }
 
+
+    def populate_album(self, album_id: str, filenames: List[str]) -> List[Any]:
+        """
+        Helper function to stage and create media
+
+        Parameters
+        ----------
+        media_items: List[str]
+            Paths of the media to upload
+        album_id: str
+            Id of the album to attach the media to
+        """
+        for f in filenames:
+            self.stage_media(f)
+        
+        return self.batchCreate(album_id)
+
+
     def stage_media(self, media_file, description=""):
         """
         Stage media to be added to the photo account,
@@ -609,8 +629,8 @@ class Media:
         self._staged_media.append(new_media)
         return new_media
 
-    # API ENDPOINTS
 
+    # API ENDPOINTS
     def batchCreate(self,
                     album_id=None,
                     album_position=None,
@@ -697,6 +717,7 @@ class Media:
         self._staged_media.clear()
         return list(itertools.chain.from_iterable(result.get("newMediaItemResults") for result in results))
 
+
     def _create_empty_album(self):
         from .album import Album
         from datetime import datetime
@@ -710,6 +731,7 @@ class Media:
         _resp = _album.create(date_str)
         album_id = _resp.get("id")
         return album_id
+
 
     def get(self, id: str):
         """
@@ -741,6 +763,7 @@ class Media:
         {'id': '...', 'productUrl': 'https://photos.google.com/lr/photo/...', 'baseUrl': 'https://lh3.googleusercontent.com/lr/...', 'mimeType': 'image/jpeg', 'mediaMetadata': {'creationTime': '...', 'width': '899', 'height': '1599', 'photo': {}}, 'filename': '...jpg'}
         """
         return self._service.mediaItems().get(mediaItemId=id).execute()
+
 
     def list(self):
         """
@@ -787,6 +810,7 @@ class Media:
             curr_list = result.get("mediaItems",[])
             for media in curr_list:
                 yield media
+
 
     def search(self, filter, exclude=None):
         """
@@ -915,6 +939,7 @@ class Media:
             curr_list = result.get("mediaItems")
             for media in curr_list:
                 yield media
+
 
     def search_album(self, album_id: str):
         """
